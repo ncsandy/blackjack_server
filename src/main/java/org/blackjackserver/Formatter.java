@@ -1,4 +1,4 @@
-package org.blackjackclient;
+package org.blackjackserver;
 public class Formatter {
     String getCardInfo(Card card) {
 

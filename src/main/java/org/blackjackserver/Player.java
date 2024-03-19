@@ -1,6 +1,4 @@
-package org.blackjackclient;
-
-import java.io.IOException;
+package org.blackjackserver;
 
 public interface Player {
     void addCard(Card card);

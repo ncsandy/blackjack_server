@@ -1,4 +1,4 @@
-package org.blackjackclient;
+package org.blackjackserver;
 
 import lombok.Setter;
 

@@ -1,4 +1,4 @@
-package org.blackjackclient;
+package org.blackjackserver;
 
 import java.util.ArrayList;
 import java.util.Collections;

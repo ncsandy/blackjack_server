@@ -1,6 +1,4 @@
-package org.blackjackclient;
-
-import java.util.ArrayList;
+package org.blackjackserver;
 
 public class Dealer extends CardHolder {
     public Dealer() {
