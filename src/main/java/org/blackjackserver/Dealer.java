@@ -21,9 +21,19 @@ public class Dealer extends CardHolder {
 
     public void dealerHit(Deck deck) {
         score = getScore();
+
+        if (score == 21) {
+            return;
+        }
+
+        if (score == 17){
+            return;
+        }
+
         while (score < 17) {
             addCard(deck.hit());
             getScore();
         }
     }
+
 }

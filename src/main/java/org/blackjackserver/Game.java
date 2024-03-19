@@ -8,7 +8,6 @@ public class Game {
 
     private List<BlackJackPlayer> blackJackPlayers;
     private Deck deck;
-
     private final Dealer dealer;
 
 
@@ -20,21 +19,34 @@ public class Game {
 
 
     public void start() {
-        try {
-            sendMessageToAll("Game started! Dealing cards...");
+        while (true) {
+            try {
+                sendMessageToAll("Game started! Dealing cards...");
 
-            deck.dealHand(dealer);
-            sendMessageToAll(dealer.firstDealerRead());
+                deck.dealHand(dealer);
+                sendMessageToAll(dealer.firstDealerRead());
 
-            for (BlackJackPlayer player : blackJackPlayers) {
+                for (BlackJackPlayer player : blackJackPlayers) {
                     deck.dealHand(player);
-                    player.sendMessage("You have: " +player.readHand() +'\n' + "Score: " +player.getScore());
+                    player.sendMessage("You have: " + player.readHand() + '\n' + "Score: " + player.getScore());
                     processPlayerTurn(player);
                 }
 
-            sendMessageToAll("Game over!");
-        } catch (IOException e) {
-            e.printStackTrace();
+                sendMessageToAll("Dealer has: " + dealer.readHand() + "\nScore is:" + dealer.getScore());
+
+                dealer.dealerHit(deck);
+
+                sendMessageToAll("Dealer has: " + dealer.readHand() + "\nScore is:" + dealer.getScore());
+
+
+                reset(blackJackPlayers);
+
+                sendMessageToAll("Game over!");
+
+            } catch (IOException e) {
+                e.printStackTrace();
+
+            }
         }
     }
 
@@ -42,14 +54,24 @@ public class Game {
         while (true) {
             String input = player.readMessage();
             if (input.equals("hit")) {
-                System.out.println(player.getName() + "C");
+                System.out.println(player.getName() + " chose to hit");
                 player.hand.add(deck.hit());
                 player.sendMessage("Your cards: " + player.readHand());
                 player.sendMessage("Your score is: " + player.getScore());
             } else if (input.equals("stand")) {
+                System.out.println(player.getName() + " chose to stand");
                 break;
             }
         }
+    }
+
+    private void reset(List<BlackJackPlayer> players) {
+        for (BlackJackPlayer player: players){
+            player.hand.clear();
+            player.score = 0;
+        }
+        dealer.clearHand();
+        dealer.score = 0;
     }
     private void sendMessageToAll(String message) {
         for (BlackJackPlayer player : blackJackPlayers) {
