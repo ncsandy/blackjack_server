@@ -10,7 +10,6 @@ public class Game {
     private Deck deck;
     private final Dealer dealer;
 
-
     public Game(List<BlackJackPlayer> blackJackPlayers) {
         this.blackJackPlayers = blackJackPlayers;
         deck = new Deck();
@@ -38,6 +37,19 @@ public class Game {
 
                 sendMessageToAll("Dealer has: " + dealer.readHand() + "\nScore is:" + dealer.getScore());
 
+                int dealerScore = dealer.getScore();
+                for (BlackJackPlayer player : blackJackPlayers) {
+                    int playerScore = player.getScore();
+                    if (playerScore > 21) {
+                        player.sendMessage("Bust! You lose.");
+                    } else if (dealerScore > 21 || playerScore > dealerScore) {
+                        player.sendMessage("Congratulations! You win.");
+                    } else if (playerScore == dealerScore) {
+                        player.sendMessage("Push!");
+                    } else {
+                        player.sendMessage("Dealer wins. Better luck next time.");
+                    }
+                }
 
                 reset(blackJackPlayers);
 
@@ -52,6 +64,11 @@ public class Game {
 
     private void processPlayerTurn(BlackJackPlayer player) throws IOException {
         while (true) {
+            if (player.getScore() == 21) {
+                player.sendMessage("Blackjack!");
+                break;
+            }
+
             String input = player.readMessage();
             if (input.equals("hit")) {
                 System.out.println(player.getName() + " chose to hit");
