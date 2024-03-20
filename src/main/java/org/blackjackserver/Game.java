@@ -1,11 +1,10 @@
 package org.blackjackserver;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.List;
 
-
 public class Game {
-
     private List<BlackJackPlayer> blackJackPlayers;
     private Deck deck;
     private final Dealer dealer;
@@ -16,14 +15,17 @@ public class Game {
         dealer = new Dealer();
     }
 
-
     public void start() {
-        while (true) {
-            try {
+        try {
+            while (blackJackPlayers.size() == 2) {
                 sendMessageToAll("Game started! Dealing cards...");
 
                 deck.dealHand(dealer);
                 sendMessageToAll(dealer.firstDealerRead());
+
+                if (blackJackPlayers.isEmpty()) {
+                    break;
+                }
 
                 for (BlackJackPlayer player : blackJackPlayers) {
                     deck.dealHand(player);
@@ -54,11 +56,12 @@ public class Game {
                 reset(blackJackPlayers);
 
                 sendMessageToAll("Game over!");
-
-            } catch (IOException e) {
-                e.printStackTrace();
-
             }
+        } catch (SocketException e) {
+            System.out.println("Player disconnected. Exiting game.");
+            removeDisconnectedPlayer();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -70,6 +73,13 @@ public class Game {
             }
 
             String input = player.readMessage();
+            if (input == null) {
+
+                System.out.println(player.getName() + " disconnected.");
+                removeDisconnectedPlayer();
+                break;
+            }
+
             if (input.equals("hit")) {
                 System.out.println(player.getName() + " chose to hit");
                 player.hand.add(deck.hit());
@@ -82,18 +92,29 @@ public class Game {
         }
     }
 
+    private void removeDisconnectedPlayer() {
+        blackJackPlayers.removeIf(player -> {
+            if (player.socket.isClosed()) {
+                System.out.println("Player disconnected: " + player.getName());
+                sendMessageToAll("Player disconnected: " + player.getName());
+                return true;
+            }
+            return false;
+        });
+    }
+
     private void reset(List<BlackJackPlayer> players) {
-        for (BlackJackPlayer player: players){
+        for (BlackJackPlayer player : players) {
             player.hand.clear();
             player.score = 0;
         }
         dealer.clearHand();
         dealer.score = 0;
     }
+
     private void sendMessageToAll(String message) {
         for (BlackJackPlayer player : blackJackPlayers) {
             player.sendMessage(message);
         }
     }
-
 }

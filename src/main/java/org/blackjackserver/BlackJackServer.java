@@ -3,8 +3,8 @@ package org.blackjackserver;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,7 +18,7 @@ public class BlackJackServer {
 
     public BlackJackServer() {
         players = new ArrayList<>();
-        executor = Executors.newCachedThreadPool();
+        executor = Executors.newFixedThreadPool(2); // Fixed-size thread pool
     }
 
     public void start() {
@@ -27,7 +27,6 @@ public class BlackJackServer {
             System.out.println("Server started. Waiting for players...");
 
             while (true) {
-
                 executor.execute(() -> {
                     try {
                         acceptPlayerConnections();
@@ -37,9 +36,7 @@ public class BlackJackServer {
                 });
 
                 if (isReady()) {
-                    game = new Game(players);
-                    game.start();
-                    players.clear();
+                    startGame();
                 }
             }
         } catch (IOException e) {
@@ -50,45 +47,49 @@ public class BlackJackServer {
     }
 
     private void acceptPlayerConnections() throws IOException {
-        try {
-            while (players.size() < 2) {
-                Socket socket = serverSocket.accept();
-                System.out.println("Player connected: " + socket);
-                BlackJackPlayer player = new BlackJackPlayer(socket);
-                assignName(player);
-                players.add(player);
+        while (players.size() < 2 && !serverSocket.isClosed()) {
+            Socket socket = serverSocket.accept();
+            System.out.println("Player connected: " + socket);
+            BlackJackPlayer player = new BlackJackPlayer(socket);
+            assignName(player);
+            players.add(player);
 
-                if (players.size() == 2) {
-                    break;  // Exit the loop once two players have joined
-                }
+            if (isReady()) {
+                break;
             }
-        }catch (SocketException s) {
-            System.out.println("Client disconnected/Lost Connection");
-            shutdown();
-            System.exit(0);
+        }
+    }
+    public void removeDisconnectedPlayers() {
+        Iterator<BlackJackPlayer> iterator = players.iterator();
+        while (iterator.hasNext()) {
+            BlackJackPlayer player = iterator.next();
+            if (player.isDisconnected()) {
+                System.out.println("Player disconnected: " + player.getName());
+                iterator.remove();
+            }
         }
     }
 
     private void assignName(BlackJackPlayer player) throws IOException {
-
-        try {
-            while (true) {
-                player.sendMessage("What is your name?");
-                String input = player.readMessage();
-                if (input != null) {
-                    player.setName(input);
-                    player.sendMessage("Your name is now: " + player.getName());
-                    break;
-                }
-            }
-        }catch (SocketException s){
-            System.out.println("Client Disconnected/Or lost Connection");
-            shutdown();
-            System.out.println(s);
+        player.sendMessage("What is your name?");
+        String input = player.readMessage();
+        if (input != null) {
+            player.setName(input);
+            player.sendMessage("Your name is now: " + player.getName());
         }
     }
+
     private boolean isReady() {
         return players.size() == 2;
+    }
+
+    private void startGame() {
+        removeDisconnectedPlayers();
+        if (isReady()) {
+            game = new Game(players);
+            game.start();
+            players.clear();
+        }
     }
 
     private void shutdown() {
@@ -98,7 +99,7 @@ public class BlackJackServer {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        }
+    }
 
     public static void main(String[] args) {
         BlackJackServer server = new BlackJackServer();
