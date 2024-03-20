@@ -2,11 +2,12 @@ package org.blackjackserver;
 
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Game {
-    private List<BlackJackPlayer> blackJackPlayers;
-    private Deck deck;
+    private final List<BlackJackPlayer> blackJackPlayers;
+    private final Deck deck;
     private final Dealer dealer;
 
     public Game(List<BlackJackPlayer> blackJackPlayers) {
@@ -29,31 +30,21 @@ public class Game {
 
                 for (BlackJackPlayer player : blackJackPlayers) {
                     deck.dealHand(player);
-                    player.sendMessage("You have: " + player.readHand() + '\n' + "Score: " + player.getScore());
+                    sendPlayerHandAndScore(player);
                     processPlayerTurn(player);
                 }
 
-                sendMessageToAll("Dealer has: " + dealer.readHand() + "\nScore is:" + dealer.getScore());
+                sendDealerHandAndScore();
 
                 dealer.dealerHit(deck);
 
-                sendMessageToAll("Dealer has: " + dealer.readHand() + "\nScore is:" + dealer.getScore());
+                sendDealerHandAndScore();
 
-                int dealerScore = dealer.getScore();
-                for (BlackJackPlayer player : blackJackPlayers) {
-                    int playerScore = player.getScore();
-                    if (playerScore > 21) {
-                        player.sendMessage("Bust! You lose.");
-                    } else if (dealerScore > 21 || playerScore > dealerScore) {
-                        player.sendMessage("Congratulations! You win.");
-                    } else if (playerScore == dealerScore) {
-                        player.sendMessage("Push!");
-                    } else {
-                        player.sendMessage("Dealer wins. Better luck next time.");
-                    }
-                }
+                determineWinner();
 
-                reset(blackJackPlayers);
+                resetPlayers();
+
+                removeDisconnectedPlayer();
 
                 sendMessageToAll("Game over!");
             }
@@ -74,37 +65,49 @@ public class Game {
 
             String input = player.readMessage();
             if (input == null) {
-
-                System.out.println(player.getName() + " disconnected.");
-                removeDisconnectedPlayer();
+                handlePlayerDisconnection(player);
                 break;
             }
 
             if (input.equals("hit")) {
-                System.out.println(player.getName() + " chose to hit");
-                player.hand.add(deck.hit());
-                player.sendMessage("Your cards: " + player.readHand());
-                player.sendMessage("Your score is: " + player.getScore());
+                handlePlayerHit(player);
             } else if (input.equals("stand")) {
-                System.out.println(player.getName() + " chose to stand");
+                handlePlayerStand(player);
                 break;
             }
         }
     }
 
+    private void handlePlayerHit(BlackJackPlayer player) throws IOException {
+        System.out.println(player.getName() + " chose to hit");
+        player.hand.add(deck.hit());
+        sendPlayerHandAndScore(player);
+    }
+
+    private void handlePlayerStand(BlackJackPlayer player) {
+        System.out.println(player.getName() + " chose to stand");
+    }
+
+    private void handlePlayerDisconnection(BlackJackPlayer player) {
+        System.out.println(player.getName() + " disconnected.");
+        removeDisconnectedPlayer();
+    }
+
     private void removeDisconnectedPlayer() {
-        blackJackPlayers.removeIf(player -> {
+        List<BlackJackPlayer> disconnectedPlayers = new ArrayList<>();
+        for (BlackJackPlayer player : blackJackPlayers) {
             if (player.socket.isClosed()) {
                 System.out.println("Player disconnected: " + player.getName());
                 sendMessageToAll("Player disconnected: " + player.getName());
-                return true;
+                disconnectedPlayers.add(player);
             }
-            return false;
-        });
+        }
+        blackJackPlayers.removeAll(disconnectedPlayers);
     }
 
-    private void reset(List<BlackJackPlayer> players) {
-        for (BlackJackPlayer player : players) {
+
+    private void resetPlayers() {
+        for (BlackJackPlayer player : blackJackPlayers) {
             player.hand.clear();
             player.score = 0;
         }
@@ -115,6 +118,30 @@ public class Game {
     private void sendMessageToAll(String message) {
         for (BlackJackPlayer player : blackJackPlayers) {
             player.sendMessage(message);
+        }
+    }
+
+    private void sendPlayerHandAndScore(BlackJackPlayer player) throws IOException {
+        player.sendMessage("You have: " + player.readHand() + '\n' + "Score: " + player.getScore());
+    }
+
+    private void sendDealerHandAndScore() {
+        sendMessageToAll("Dealer has: " + dealer.readHand() + "\nScore is:" + dealer.getScore());
+    }
+
+    private void determineWinner() {
+        int dealerScore = dealer.getScore();
+        for (BlackJackPlayer player : blackJackPlayers) {
+            int playerScore = player.getScore();
+            if (playerScore > 21) {
+                player.sendMessage("Bust! You lose.");
+            } else if (dealerScore > 21 || playerScore > dealerScore) {
+                player.sendMessage("Congratulations! You win.");
+            } else if (playerScore == dealerScore) {
+                player.sendMessage("Push!");
+            } else {
+                player.sendMessage("Dealer wins. Better luck next time.");
+            }
         }
     }
 }

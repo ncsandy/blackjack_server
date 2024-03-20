@@ -37,15 +37,18 @@ public class BlackJackPlayer extends CardHolder {
         out.println(message);
     }
 
-    public String readMessage() {
+    public String readMessage() throws IOException {
         try {
             return in.readLine();
         } catch (SocketException e) {
-            System.out.println("Player disconnected");
+            System.out.println("Player disconnected" + socket);
             disconnected = true;
+            close();
             return null;
         } catch (IOException e) {
             e.printStackTrace();
+            disconnected = true;
+            close();
             return null;
         }
     }
