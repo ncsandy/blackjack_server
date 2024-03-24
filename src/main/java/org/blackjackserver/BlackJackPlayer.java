@@ -9,11 +9,15 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.UUID;
 
 public class BlackJackPlayer extends CardHolder {
     Socket socket;
     private BufferedReader in;
     private PrintWriter out;
+
+    @Getter
+    private UUID uuid;
 
     @Getter @Setter
     private String name;
@@ -23,6 +27,7 @@ public class BlackJackPlayer extends CardHolder {
 
     public BlackJackPlayer(Socket socket)  throws IOException {
         this.socket = socket;
+        this.uuid = UUID.randomUUID();
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
@@ -41,7 +46,7 @@ public class BlackJackPlayer extends CardHolder {
         try {
             return in.readLine();
         } catch (SocketException e) {
-            System.out.println("Player disconnected" + socket);
+            System.out.println(this.name + " disconnected. Closing socket: " + socket);
             disconnected = true;
             close();
             return null;

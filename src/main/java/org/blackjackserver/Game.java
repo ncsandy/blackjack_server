@@ -3,15 +3,18 @@ package org.blackjackserver;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
+import static org.blackjackserver.BlackJackServer.players;
 
 public class Game {
     private final List<BlackJackPlayer> blackJackPlayers;
     private final Deck deck;
     private final Dealer dealer;
 
-    public Game(List<BlackJackPlayer> blackJackPlayers) {
-        this.blackJackPlayers = blackJackPlayers;
+    public Game() {
+        this.blackJackPlayers = players;
         deck = new Deck();
         dealer = new Dealer();
     }
@@ -24,14 +27,19 @@ public class Game {
                 deck.dealHand(dealer);
                 sendMessageToAll(dealer.firstDealerRead());
 
-                if (blackJackPlayers.isEmpty()) {
-                    break;
-                }
 
-                for (BlackJackPlayer player : blackJackPlayers) {
+                Iterator<BlackJackPlayer> iterator = blackJackPlayers.iterator();
+                while (iterator.hasNext()) {
+                    BlackJackPlayer player = iterator.next();
                     deck.dealHand(player);
                     sendPlayerHandAndScore(player);
                     processPlayerTurn(player);
+                }
+
+                if (blackJackPlayers.size() <= 1) {
+                    System.out.println("Returning to main lobby");
+                    sendMessageToAll("Returning to main lobby to wait for players.  Player size is: " + players.size());
+                    break;
                 }
 
                 sendDealerHandAndScore();
@@ -44,13 +52,13 @@ public class Game {
 
                 resetPlayers();
 
-                removeDisconnectedPlayer();
+                removeDisconnectedPlayers();
 
                 sendMessageToAll("Game over!");
             }
         } catch (SocketException e) {
             System.out.println("Player disconnected. Exiting game.");
-            removeDisconnectedPlayer();
+            removeDisconnectedPlayers();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -65,7 +73,7 @@ public class Game {
 
             String input = player.readMessage();
             if (input == null) {
-                handlePlayerDisconnection(player);
+                handlePlayerDisconnection();
                 break;
             }
 
@@ -88,16 +96,15 @@ public class Game {
         System.out.println(player.getName() + " chose to stand");
     }
 
-    private void handlePlayerDisconnection(BlackJackPlayer player) {
-        System.out.println(player.getName() + " disconnected.");
-        removeDisconnectedPlayer();
+    private void handlePlayerDisconnection() {
+        removeDisconnectedPlayers();
     }
 
-    private void removeDisconnectedPlayer() {
+    private void removeDisconnectedPlayers() {
         List<BlackJackPlayer> disconnectedPlayers = new ArrayList<>();
         for (BlackJackPlayer player : blackJackPlayers) {
             if (player.socket.isClosed()) {
-                System.out.println("Player disconnected: " + player.getName());
+                System.out.println("Player disconnected: " + player.getName() + " UUID: " + player.getUuid());
                 sendMessageToAll("Player disconnected: " + player.getName());
                 disconnectedPlayers.add(player);
             }
@@ -107,6 +114,7 @@ public class Game {
 
 
     private void resetPlayers() {
+        removeDisconnectedPlayers();
         for (BlackJackPlayer player : blackJackPlayers) {
             player.hand.clear();
             player.score = 0;
@@ -122,7 +130,7 @@ public class Game {
     }
 
     private void sendPlayerHandAndScore(BlackJackPlayer player) throws IOException {
-        player.sendMessage("You have: " + player.readHand() + '\n' + "Score: " + player.getScore());
+        player.sendMessage("You have: " + player.readHand() + '\n' + "Score: " + player.getScore() + '\n' + "Hit or Stand?");
     }
 
     private void sendDealerHandAndScore() {

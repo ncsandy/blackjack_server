@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 public class BlackJackServer {
     private static final int PORT = 8888;
     private ServerSocket serverSocket;
-    private List<BlackJackPlayer> players;
+    static List<BlackJackPlayer> players;
     private Game game;
     private ExecutorService executor;
 
@@ -53,19 +53,24 @@ public class BlackJackServer {
             BlackJackPlayer player = new BlackJackPlayer(socket);
             assignName(player);
             players.add(player);
-
+            if (players.size() != 2) {
+                player.sendMessage("Waiting for players to join..");
+            }
+            removeDisconnectedPlayers();
             if (isReady()) {
                 break;
             }
         }
     }
     public void removeDisconnectedPlayers() {
-        Iterator<BlackJackPlayer> iterator = players.iterator();
-        while (iterator.hasNext()) {
-            BlackJackPlayer player = iterator.next();
-            if (player.isDisconnected()) {
-                System.out.println("Player disconnected: " + player.getName());
-                iterator.remove();
+        synchronized (players) {
+            Iterator<BlackJackPlayer> iterator = players.iterator();
+            while (iterator.hasNext()) {
+                BlackJackPlayer player = iterator.next();
+                if (player.isDisconnected()) {
+                    System.out.println("Player disconnected: " + player.getName());
+                    iterator.remove();
+                }
             }
         }
     }
@@ -75,6 +80,7 @@ public class BlackJackServer {
         String input = player.readMessage();
         if (input != null) {
             player.setName(input);
+            System.out.println("New player created " + player.getName() + " UUID " + player.getUuid());
             player.sendMessage("Your name is now: " + player.getName());
         }
     }
@@ -86,14 +92,14 @@ public class BlackJackServer {
     private void startGame() {
         removeDisconnectedPlayers();
         if (isReady()) {
-            game = new Game(players);
+            game = new Game();
             game.start();
-            players.clear();
         }
     }
 
     private void shutdown() {
         try {
+            System.out.println("Server encountered a critical error, shutting down.");
             serverSocket.close();
             executor.shutdown();
         } catch (IOException e) {
@@ -106,3 +112,5 @@ public class BlackJackServer {
         server.start();
     }
 }
+
+
