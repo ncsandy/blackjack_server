@@ -16,7 +16,7 @@ public class Dealer extends CardHolder {
     }
 
     public String firstDealerRead() {
-        return "Dealer is showing " + formatter.getCardInfo(this.hand.get(0));
+        return "\nDealer is showing " + formatter.getCardInfo(this.hand.get(0));
     }
 
     public void dealerHit(Deck deck) {

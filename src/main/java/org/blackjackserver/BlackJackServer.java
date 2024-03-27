@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,19 +17,22 @@ public class BlackJackServer {
 
     public BlackJackServer() {
         players = new ArrayList<>();
-        executor = Executors.newFixedThreadPool(2); // Fixed-size thread pool
+        executor = Executors.newFixedThreadPool(2);
     }
 
-    public void start() {
+    public void start(){
         try {
             serverSocket = new ServerSocket(PORT);
             System.out.println("Server started. Waiting for players...");
 
             while (true) {
+
                 executor.execute(() -> {
                     try {
+                        removeDisconnectedPlayers();
                         acceptPlayerConnections();
                     } catch (IOException e) {
+                        System.out.println("Error while accepting connections");
                         e.printStackTrace();
                     }
                 });
@@ -41,6 +43,7 @@ public class BlackJackServer {
             }
         } catch (IOException e) {
             e.printStackTrace();
+
         } finally {
             shutdown();
         }
@@ -48,30 +51,23 @@ public class BlackJackServer {
 
     private void acceptPlayerConnections() throws IOException {
         while (players.size() < 2 && !serverSocket.isClosed()) {
-            Socket socket = serverSocket.accept();
-            System.out.println("Player connected: " + socket);
-            BlackJackPlayer player = new BlackJackPlayer(socket);
-            assignName(player);
-            players.add(player);
-            if (players.size() != 2) {
-                player.sendMessage("Waiting for players to join..");
+                Socket socket = serverSocket.accept();
+                System.out.println("Player connected: " + socket);
+                BlackJackPlayer player = new BlackJackPlayer(socket);
+                assignName(player);
+                players.add(player);
+                if (players.size() != 2) {
+                    player.sendMessage("Waiting for players to join..");
+                }
+                removeDisconnectedPlayers();
+                if (isReady()) {
+                    break;
+                }
             }
-            removeDisconnectedPlayers();
-            if (isReady()) {
-                break;
-            }
-        }
     }
     public void removeDisconnectedPlayers() {
         synchronized (players) {
-            Iterator<BlackJackPlayer> iterator = players.iterator();
-            while (iterator.hasNext()) {
-                BlackJackPlayer player = iterator.next();
-                if (player.isDisconnected()) {
-                    System.out.println("Player disconnected: " + player.getName());
-                    iterator.remove();
-                }
-            }
+            players.removeIf(player -> player.socket.isClosed());
         }
     }
 
@@ -106,7 +102,6 @@ public class BlackJackServer {
             e.printStackTrace();
         }
     }
-
     public static void main(String[] args) {
         BlackJackServer server = new BlackJackServer();
         server.start();

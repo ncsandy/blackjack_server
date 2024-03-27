@@ -25,13 +25,23 @@ public class BlackJackPlayer extends CardHolder {
     @Getter
     private boolean disconnected;
 
-    public BlackJackPlayer(Socket socket)  throws IOException {
+    @Getter @Setter
+    int money;
+
+    @Getter @Setter
+    int bet;
+
+    public BlackJackPlayer(Socket socket) throws IOException {
         this.socket = socket;
         this.uuid = UUID.randomUUID();
+
+        this.money = 100;
+
         try {
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out = new PrintWriter(socket.getOutputStream(), true);
         } catch (IOException e) {
+            System.out.println("Failed to create input or output stream");
             e.printStackTrace();
         }
     }
