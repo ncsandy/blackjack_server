@@ -1,6 +1,7 @@
 package org.blackjackserver;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.BufferedReader;
@@ -11,6 +12,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.UUID;
 
+@NoArgsConstructor
 public class BlackJackPlayer extends CardHolder {
     Socket socket;
     private BufferedReader in;
@@ -30,6 +32,7 @@ public class BlackJackPlayer extends CardHolder {
 
     @Getter @Setter
     int bet;
+
 
     public BlackJackPlayer(Socket socket) throws IOException {
         this.socket = socket;

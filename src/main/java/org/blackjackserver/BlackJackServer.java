@@ -99,7 +99,8 @@ public class BlackJackServer {
             serverSocket.close();
             executor.shutdown();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Failed to shutdown...trying again");
+            shutdown();
         }
     }
     public static void main(String[] args) {

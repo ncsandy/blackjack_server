@@ -25,6 +25,8 @@ public class Game {
                 while (blackJackPlayers.size() == 2) {
                     try {
 
+                        reloadDeck();
+
                         sendMessageToAll("Game started! Dealing cards...");
                         deck.dealHand(dealer);
 
@@ -152,7 +154,12 @@ public class Game {
             int dealerScore = dealer.getScore();
             for (BlackJackPlayer player : blackJackPlayers) {
                 int playerScore = player.getScore();
-                if (playerScore > 21) {
+                if (playerScore == 21){
+                    player.sendMessage("\nCongratulations! You got Blackjack!");
+                    calculator("blackjack", player);
+                    System.out.println(player.getMoney());
+                }
+                else if (playerScore > 21) {
                     player.sendMessage("\nBust! You lose.");
                     calculator("lose", player);
                     System.out.println(player.getMoney());
@@ -175,7 +182,7 @@ public class Game {
     private void getPlayerBet(BlackJackPlayer player) throws IOException {
         int bet = 0;
         while (true) {
-            player.sendMessage("How much would you like to bet?");
+            player.sendMessage("How much would you like to bet? You have " + player.getMoney());
             String input = player.readMessage();
             if (input == null) {
                 handlePlayerDisconnection();
@@ -185,7 +192,7 @@ public class Game {
             try {
                 bet = Integer.parseInt(input);
             } catch (NumberFormatException e) {
-                System.out.println("Please but a correct number..");
+                player.sendMessage("Please but a correct number..");
                 continue;
             }
             if (bet <= 0) {
@@ -200,12 +207,13 @@ public class Game {
             if (bet <= player.getMoney()) {
                 player.sendMessage("You are now betting: " + bet);
                 player.setBet(bet);
+                player.setMoney(player.getMoney() - bet);
                 break;
             }
         }
     }
 
-    private void calculator(String outcome, BlackJackPlayer player) {
+    public void calculator(String outcome, BlackJackPlayer player) {
         int money = 0;
         switch (outcome) {
             case "win":
@@ -219,11 +227,20 @@ public class Game {
                 player.sendMessage("You now have:" + player.getMoney());
                 break;
             case "blackjack":
-                money = player.money += (int) (player.bet * 1.5);
+                money = player.money += (int) (player.bet + player.bet * 1.5);
                 player.setMoney(money);
                 player.sendMessage("You now have:" + player.getMoney());
+                System.out.println(player.getMoney());
+                break;
             default:
                 throw new IllegalArgumentException("Invalid outcome: " + outcome);
+        }
+    }
+
+    private void reloadDeck() {
+        if (deck.getCards().size() <= 10) {
+            Deck newDeck = new Deck();
+            deck.getCards().addAll(newDeck.getCards());
         }
     }
 }

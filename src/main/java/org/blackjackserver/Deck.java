@@ -1,11 +1,15 @@
 package org.blackjackserver;
 
+import lombok.Getter;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
 public class Deck {
+
+    @Getter
     private List<Card> cards;
     private Random random;
 

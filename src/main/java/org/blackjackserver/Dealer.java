@@ -26,7 +26,7 @@ public class Dealer extends CardHolder {
             return;
         }
 
-        if (score == 17){
+        if (score == 17) {
             return;
         }
 
@@ -35,5 +35,4 @@ public class Dealer extends CardHolder {
             getScore();
         }
     }
-
 }
